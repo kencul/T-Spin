@@ -11,14 +11,16 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
     public string currentPiece;
     List<string> Pieces = new() { "i", "o", "t", "l", "j", "s", "z" };
-    List<string> RNGPieces = new() { };
+    List<string> RNGPieces = new();
     List<string> nextMinos = new();
     public int pieceItr = 0;
 
     public string heldPiece = "";
     public bool holdOK = true;
+    public bool softDropOn = false;
 
-    public KeyCode Place;
+    public KeyCode HardDrop;
+    public KeyCode SoftDrop;
     public KeyCode Hold;
     public KeyCode Left;
     public KeyCode Right;
@@ -33,7 +35,7 @@ public class GameManager : MonoBehaviour
     public GameObject LMino;
     public GameObject JMino;
     public GameObject TMino;
-    Dictionary<string, GameObject> minoPrefabDict = new();
+    public Dictionary<string, GameObject> minoPrefabDict = new();
 
     //References to visual GameObjects
     private GameObject playerMino;
@@ -45,15 +47,20 @@ public class GameManager : MonoBehaviour
     private GameObject nextMino5;
     List<GameObject> nextMinoList;
 
+    playerMinoTransforms playerScript;
+
+    //Empty GameObject to group minos
+    public GameObject minoParent;
+
     Dictionary<string, Vector3> spawnLocation = new()
     {
-        { "i", new Vector3(0, 4.4f, 0) },
-        { "o", new Vector3(0, 4.8f, 0) },
-        { "t", new Vector3(-0.2f, 4.6f, 0) },
-        { "l", new Vector3(-0.2f, 4.6f, 0) },
-        { "j", new Vector3(-0.2f, 4.6f, 0) },
-        { "z", new Vector3(-0.2f, 4.6f, 0) },
-        { "s", new Vector3(-0.2f, 4.6f, 0) }
+        { "i", new Vector3(0, 4.0f, 0) },
+        { "o", new Vector3(0, 4.4f, 0) },
+        { "t", new Vector3(-0.2f, 4.2f, 0) },
+        { "l", new Vector3(-0.2f, 4.2f, 0) },
+        { "j", new Vector3(-0.2f, 4.2f, 0) },
+        { "z", new Vector3(-0.2f, 4.2f, 0) },
+        { "s", new Vector3(-0.2f, 4.2f, 0) }
     };
 
     Dictionary<string, Vector3> centerMino = new()
@@ -66,6 +73,20 @@ public class GameManager : MonoBehaviour
         { "z", new Vector3(0, -0.2f, 0) },
         { "s", new Vector3(0, -0.2f, 0) }
     };
+
+    private bool _gameover = false;
+    public bool gameover
+    {
+        get => _gameover;
+        set
+        {
+            if (value)
+            {
+                gameoverProcess();
+            }
+        }
+    }
+    public TextMeshProUGUI gameoverText;
 
     void Awake()
     {
@@ -98,7 +119,10 @@ public class GameManager : MonoBehaviour
 
         //Instantiate list of next Mino GameObjects
         nextMinoList = new() { nextMino1, nextMino2, nextMino3, nextMino4, nextMino5 };
+    }
 
+    public void initGame()
+    {
         SevenBagPRG();
         NextPiece();
         updateMinos();
@@ -108,12 +132,12 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         //Place a piece
-        if (Input.GetKeyDown(Place))
+        /*if (Input.GetKeyDown(Place))
         {
             NextPiece();
             updateMinos();
             holdOK = true;
-        }
+        }*/
 
         //Hold Piece
         if (Input.GetKeyDown(Hold) && holdOK)
@@ -122,26 +146,47 @@ public class GameManager : MonoBehaviour
             {
                 heldPiece = currentPiece;
                 NextPiece();
+                deletePlayerMino();
             }
             else
             {
                 (heldPiece, currentPiece) = (currentPiece, heldPiece);
+                deletePlayerMino();
             }
             updateMinos();
             holdOK = false;
         }
     }
 
-    public void updateMinos()
+    void gameoverProcess()
     {
-        //Spawn Player Mino with script
+        gameoverText.text = "GAMEOVER </indent> PRESS SPACE TO RESTART";
+        Destroy(this);
+    }
+
+    public void piecePlaced()
+    {
+        NextPiece();
+        updateMinos();
+        holdOK = true;
+    }
+
+    //Delete Player Controlled mino (used for holding a mino)
+    public void deletePlayerMino()
+    {
         if (playerMino != null)
         {
+            playerScript.endScript();
             Destroy(playerMino);
             //Debug.LogFormat("Deleting {0}", playerMino);
         }
-        playerMino = Instantiate(minoPrefabDict[currentPiece], spawnLocation[currentPiece], Quaternion.identity);
-        playerMino.AddComponent<playerMinoTransforms>();
+    }
+
+    public void updateMinos()
+    {
+        //Spawn Player Mino with script
+        playerMino = Instantiate(minoPrefabDict[currentPiece], spawnLocation[currentPiece], Quaternion.identity, minoParent.transform);
+        playerScript = playerMino.AddComponent<playerMinoTransforms>();
 
         //Spawn Hold Mino
         if (heldPiece != "" && holdMino != minoPrefabDict[heldPiece])
@@ -150,7 +195,7 @@ public class GameManager : MonoBehaviour
             {
                 Destroy(holdMino);
             }
-            holdMino = Instantiate(minoPrefabDict[heldPiece], new Vector3(-3.08f, 2.6f, 0)+centerMino[heldPiece], Quaternion.identity);
+            holdMino = Instantiate(minoPrefabDict[heldPiece], new Vector3(-3.08f, 2.6f, 0)+centerMino[heldPiece], Quaternion.identity, minoParent.transform);
         }
 
         //Spawn Next Minos
@@ -162,7 +207,7 @@ public class GameManager : MonoBehaviour
                 {
                     Destroy(nextMinoList[i]);
                 }
-                nextMinoList[i] = Instantiate(minoPrefabDict[nextMinos[i]], new Vector3(3.06f, 2.97f-.9f*i, 0)+centerMino[nextMinos[i]], new Quaternion(0, 0, 0, 0));
+                nextMinoList[i] = Instantiate(minoPrefabDict[nextMinos[i]], new Vector3(3.06f, 2.97f-.9f*i, 0)+centerMino[nextMinos[i]], new Quaternion(0, 0, 0, 0), minoParent.transform);
             }
         }
     }
