@@ -4,17 +4,15 @@ using UnityEngine;
 
 public class playerMinoTransforms : MonoBehaviour
 {
-    //public bool leftPressed;
-    //public bool rightPressed;
-    //public bool testPressed;
-
+    //Property for the rotation mode of the player mino
     private int _rotaMode = 0;
-
     public int rotaMode
     {
         get => _rotaMode;
         set
         {
+            //Tunneling of the rotaMode to ensure it stays within 0-3
+            //if it goes to 4, set to 0, if it goes to -1, go to 3
             switch (value)
             {
                 case 4:
@@ -36,17 +34,24 @@ public class playerMinoTransforms : MonoBehaviour
     private Dictionary<int, List<GameObject>> bottomChildren = new();
     private Dictionary<int, GameObject> lowestChild = new();
 
+    //List of reference to all 4 children in the player mino
     public List<GameObject> childrenGO = new();
+    //Reference to ghost piece, and list of children
     public GameObject ghostPiece;
     public List<GameObject> ghostPieceChildren = new();
 
+    //Int for how many blocks under mino is open
     private int distanceUnder;
+
+    //Gravity logic: int for gravity speed, and coroutine reference
     public int fallRate = 2;
     Coroutine gravityCoroutine;
     private WaitForSeconds delay;
 
+    //Reference to coroutine for soft drop
     Coroutine softDropCoroutine;
 
+    //move right and left coroutine, and booleans to determine which key is pressed down, and which coroutine is running
     Coroutine moveRightCoroutine;
     Coroutine moveLeftCoroutine;
     bool rightKeyDown;
@@ -54,13 +59,13 @@ public class playerMinoTransforms : MonoBehaviour
     bool rightCoroutineOn;
     bool leftCoroutineOn;
 
+    //Instantiate the list of references to the children of the player mino
     private void Awake()
     {
         for (int i = 0; i < transform.childCount; i++)
             childrenGO.Add(transform.GetChild(i).gameObject);
     }
 
-    // Start is called before the first frame update
     void Start()
     {
         //Check if spawned mino already overlaps

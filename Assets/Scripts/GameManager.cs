@@ -8,17 +8,24 @@ using UnityEngine.UIElements;
 
 public class GameManager : MonoBehaviour
 {
+    //Singleton
     public static GameManager Instance;
+
+    //RNG Generator
     public string currentPiece;
     List<string> Pieces = new() { "i", "o", "t", "l", "j", "s", "z" };
     List<string> RNGPieces = new();
     List<string> nextMinos = new();
     public int pieceItr = 0;
 
+    //Hold Logic
     public string heldPiece = "";
     public bool holdOK = true;
+
+    //Bool to enable Soft Drop inbetween piece drops (used in playerMinoTransforms)
     public bool softDropOn = false;
 
+    //Keybinds
     public KeyCode HardDrop;
     public KeyCode SoftDrop;
     public KeyCode Hold;
@@ -47,11 +54,13 @@ public class GameManager : MonoBehaviour
     private GameObject nextMino5;
     List<GameObject> nextMinoList;
 
+    //reference to the current player's script
     playerMinoTransforms playerScript;
 
     //Empty GameObject to group minos
     public GameObject minoParent;
 
+    //Dictionary to adjust the spawn location of each mino, as the center of the prefabs are different for each
     Dictionary<string, Vector3> spawnLocation = new()
     {
         { "i", new Vector3(0, 4.0f, 0) },
@@ -63,6 +72,7 @@ public class GameManager : MonoBehaviour
         { "s", new Vector3(-0.2f, 4.2f, 0) }
     };
 
+    //Dictionary to center all the minos in order so the hold and next minos won't overlap
     Dictionary<string, Vector3> centerMino = new()
     {
         { "i", new Vector3(0, -0.2f, 0) },
@@ -74,7 +84,10 @@ public class GameManager : MonoBehaviour
         { "s", new Vector3(0, -0.2f, 0) }
     };
 
+
+    //Property for gameover
     private bool _gameover = false;
+    //CAPTALIZE
     public bool gameover
     {
         get => _gameover;
@@ -97,7 +110,6 @@ public class GameManager : MonoBehaviour
             Instance = this;
     }
 
-    // Start is called before the first frame update
     void Start()
     {
         //Instantite the tempPrefabDictionary
@@ -111,6 +123,8 @@ public class GameManager : MonoBehaviour
             { "s", SMino },
             { "z", ZMino }
         };
+        //use tempPrefabDictionary to instantiate minoPrefabDict
+        //this needs to be done as I assign references to gameObjects
         foreach (KeyValuePair<string, GameObject> kvp in tempPrefabDict)
         {
             minoPrefabDict.Add(kvp.Key, kvp.Value);
@@ -121,6 +135,7 @@ public class GameManager : MonoBehaviour
         nextMinoList = new() { nextMino1, nextMino2, nextMino3, nextMino4, nextMino5 };
     }
 
+    //Method to call to start the game: run RNG, generate next pieces, and spawn minos\
     public void initGame()
     {
         SevenBagPRG();
@@ -131,39 +146,37 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //Place a piece
-        /*if (Input.GetKeyDown(Place))
-        {
-            NextPiece();
-            updateMinos();
-            holdOK = true;
-        }*/
-
-        //Hold Piece
+        //Hold Piece logic
+        //If hold key pressed and hold available, hold the piece and disable holding for the turn
         if (Input.GetKeyDown(Hold) && holdOK)
         {
-            if (heldPiece == "")
+            //If there is a mino already held, swap the current and held piece and delete the player
+            if (heldPiece != "")
+            {
+                (heldPiece, currentPiece) = (currentPiece, heldPiece);
+                deletePlayerMino();
+            }
+            //If there is no piece held, assign the current piece as held, get the next mino and destroy the mino
+            else
             {
                 heldPiece = currentPiece;
                 NextPiece();
                 deletePlayerMino();
             }
-            else
-            {
-                (heldPiece, currentPiece) = (currentPiece, heldPiece);
-                deletePlayerMino();
-            }
+            //Reload minos and disable holding for this turn
             updateMinos();
             holdOK = false;
         }
     }
 
+    //Method to end the game, shows text for gameover and destroys this script
     void gameoverProcess()
     {
         gameoverText.text = "GAMEOVER </indent> PRESS SPACE TO RESTART";
         Destroy(this);
     }
 
+    //Method to place a piece, gets the next mino and updates all minos on screen
     public void piecePlaced()
     {
         NextPiece();
@@ -178,10 +191,10 @@ public class GameManager : MonoBehaviour
         {
             playerScript.endScript();
             Destroy(playerMino);
-            //Debug.LogFormat("Deleting {0}", playerMino);
         }
     }
 
+    //Method to reload minos
     public void updateMinos()
     {
         //Spawn Player Mino with script
@@ -204,14 +217,15 @@ public class GameManager : MonoBehaviour
             for (int i=0; i < nextMinoList.Count; i++)
             {
                 if (nextMinoList[i] != null)
-                {
                     Destroy(nextMinoList[i]);
-                }
-                nextMinoList[i] = Instantiate(minoPrefabDict[nextMinos[i]], new Vector3(3.06f, 2.97f-.9f*i, 0)+centerMino[nextMinos[i]], new Quaternion(0, 0, 0, 0), minoParent.transform);
+                //Spawn iteration of next minos skewed
+                nextMinoList[i] = Instantiate(minoPrefabDict[nextMinos[i]], new Vector3(3.06f, 2.97f-.9f*i, 0)+centerMino[nextMinos[i]], Quaternion.identity, minoParent.transform);
             }
         }
     }
 
+    //Generate the 5 next pieces, based on 7-bag rng
+    //7-bag rng: ensures all 7 minos appear before a mino comes up again
     public void NextPiece()
     {
         //Create queue of next 5 minos
@@ -219,11 +233,13 @@ public class GameManager : MonoBehaviour
         {
             int i = pieceItr;
             pieceItr += 1;
+            //If this method still hasn't used all of the 7-pieces generated, get the next piece
             if (i < 7)
             {
                 currentPiece = RNGPieces[i];
                 nextMinos.Add(RNGPieces[i]);
             }
+            //If all 7 pieces have been used, generate a new set of 7-pieces, and get the first piece
             else
             {
                 SevenBagPRG();
@@ -238,6 +254,8 @@ public class GameManager : MonoBehaviour
     }
 
     //Fisher-Yates Shuffle
+    //https://en.wikipedia.org/wiki/Fisher–Yates_shuffle
+    //Takes the 7 minos, and randomizes the order with all permutations being equally probable
     public void SevenBagPRG()
     {
         int n = 7;
