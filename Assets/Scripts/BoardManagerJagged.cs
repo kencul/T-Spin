@@ -7,14 +7,7 @@ using TMPro;
 
 public class BoardManagerJagged : MonoBehaviour
 {
-    /*public KeyCode arrayDebug;
-    public GameObject testPrefab;
-    public GameObject testParent;
-
-    public TextMeshProUGUI debugText;
-
-    private string debugString;*/
-
+    //Singleton Instance
     public static BoardManagerJagged Instance;
 
     //[y, x] ***IMPORTANT & CONFUSING***, AXES FLIPPED FOR LINECLEARING LOGIC
@@ -23,7 +16,7 @@ public class BoardManagerJagged : MonoBehaviour
     //Bottom of board = -3.8f
     //Far Left of board = -1.8f
 
-    public GameObject[][] boardGameObjects = new GameObject[25][];
+    private GameObject[][] boardGameObjects = new GameObject[25][];
 
     void Awake()
     {
@@ -36,9 +29,6 @@ public class BoardManagerJagged : MonoBehaviour
 
     void Start()
     {
-        //Debug.Log(boardGameObjects.Length);
-        //Instantiate(testPrefab, new Vector3(0.4f - 3.8f, 0.4f - 1.8f, 0), Quaternion.identity, testParent.transform);
-
         //Init jagged array
         for (int i = 0; i < boardGameObjects.Length; i++)
         {
@@ -46,39 +36,11 @@ public class BoardManagerJagged : MonoBehaviour
         }
     }
 
-    void Update()
-    {
-        /*for (int i = 0; i < testParent.transform.childCount; i++)
-            Destroy(testParent.transform.GetChild(i).gameObject);*/
-
-        /*if (Input.GetKeyDown(arrayDebug))
-        {
-            *//*Debug.Log(boardGameObjects.GetLength(0));
-            Debug.Log(boardGameObjects.GetLength(1));*//*
-            Debug.Log("running debug");
-            for(int i = 0; i < boardGameObjects.GetLength(0); i++)
-            {
-                for(int j = 0; j < boardGameObjects.GetLength(1); j++)
-                {
-                    if (boardGameObjects[i, j] != null)
-                    {
-                        debugString += "- ";
-                        //Debug.Log("array index filled");
-                    }
-                    else if (boardGameObjects[i,j] == null)
-                    {
-                        debugString += "_ ";
-                    }
-                    Debug.Log(j);
-                }
-                debugString += "</indent>";
-            }
-            debugText.text = debugString;
-            debugString = "";
-        }*/
-    }
-
-    //takes a transform.position and returns the (y,x) index of the playfield
+    /// <summary>
+    /// Converts a transform.position into the matching (y,x) index of the playfield
+    /// </summary>
+    /// <param name="pos"></param>
+    /// <returns></returns>
     public (int, int) getGridIndex(Vector3 pos)
     {
         int column = (int)(Mathf.Round((pos.x + 1.8f) / 0.4f));
@@ -86,8 +48,11 @@ public class BoardManagerJagged : MonoBehaviour
         return (row, column);
     }
 
-
-
+    /// <summary>
+    /// Assigns the reference to each child of the mino to its corresponding index in the jagged array
+    /// Checks each line that was changed if it was filled, and runs the deleteLines method on those filled
+    /// </summary>
+    /// <param name="minoChildren"></param>
     public void placeInBoard(List<GameObject> minoChildren)
     {
         List<int> rowsChanged = new();
@@ -106,8 +71,6 @@ public class BoardManagerJagged : MonoBehaviour
             }
         }
 
-        //Debug.Log(rowsChanged.Count);
-
         //Check if any of the modified rows are completed
         foreach (int row in rowsChanged)
         {
@@ -115,34 +78,39 @@ public class BoardManagerJagged : MonoBehaviour
                 filledLines.Add(row);
         }
 
-        //Delete Cubes of completed lines
+        //Delete GameObjects of completed lines
         if (filledLines.Any())
             deleteLines(filledLines);
     }
 
+    /// <summary>
+    /// Checks each tile of the input row
+    /// Returns false if any tiles are open, true if all are filled
+    /// </summary>
+    /// <param name="row"></param>
+    /// <returns></returns>
     public bool checkIfLineFilled(int row)
     {
         for (int j = 9; j >= 0; j--)
         {
             if (boardGameObjects[row][j] == null)
-            {
-                //Debug.Log("no lines filled");
                 return false;
-            }
         }
         return true;
     }
 
+    /// <summary>
+    /// Deletes the gameobject of the lines of the input;
+    /// Checks the parent of each child deleted, and deletes the parent if it has no children left;
+    /// Runs shiftLines with the lines deleted passed
+    /// </summary>
+    /// <param name="lines"></param>
     public void deleteLines(List<int> lines)
     {
         foreach (int line in lines)
         {
             List<Transform> parents = new();
-            GameObject[] toClear = Enumerable.Range(0, 10)
-                 .Select(x => boardGameObjects[line][x])
-                 .ToArray();
-
-            foreach (GameObject GO in toClear)
+            foreach (GameObject GO in boardGameObjects[line])
             {
                 parents.Add(GO.transform.parent);
                 Destroy(GO);
@@ -151,95 +119,67 @@ public class BoardManagerJagged : MonoBehaviour
             foreach (Transform parent in parents)
             {
                 if (parent.childCount == 0)
-                {
-                    Debug.Log("destroying parent...");
                     Destroy(parent.gameObject);
-                }
             }
-
         }
 
         shiftLines(lines);
     }
 
+    /// <summary>
+    /// Goes through all lines above the deleted lines inputted, and shifts them down to fill the space deleted
+    /// </summary>
+    /// <param name="linesDeleted"></param>
     public void shiftLines(List<int> linesDeleted)
     {
+        //Sort deleted lines so method can run from the bottom of the playfield to the top
         linesDeleted.Sort();
         int linesUnder = 1;
+        //Starts from row above the lowest deleted to very top row
         for (int i = linesDeleted[0] + 1; i < boardGameObjects.Length; i++)
         {
-            //Skip shifting line if line was deleted and shift lines by one more from next time
+            //Skip shifting line if line was deleted and shift lines above by one extra line, tracked by linesUnder
             if (linesUnder < 4 && linesDeleted.Contains(i))
             {
                 linesUnder++;
                 continue;
             }
 
+            //Shifts the gameObjects' positions
             foreach (GameObject GO in boardGameObjects[i])
                 if (GO != null)
                     GO.transform.position += new Vector3(0, linesUnder*-0.4f, 0);
 
+            //Shift the references of the GameObjects in the jagged array
             Array.Copy(boardGameObjects[i], 0, boardGameObjects[i - linesUnder], 0, 10);
+            //Make the location of the original row all null
             Array.Copy(new GameObject[10], 0, boardGameObjects[i], 0, 10);
-
-            /*GameObject[] toMove = Enumerable.Range(0, 10)
-                 .Select(x => boardGameObjects[i][x])
-                 .ToArray();
-            Array.Copy(toMove, 0, boardGameObjects, 20 * i - 10 * linesUnder, 10);*/
         }
     }
-
-    /*public void clearLine(int row)
-    {
-        Debug.Log("clearing line " + row);
-        //Get one ror of the multidimensional array as an array
-        //https://stackoverflow.com/questions/27427527/how-to-get-a-complete-row-or-column-from-2d-array-in-c-sharp/51241629#51241629
-        GameObject[] toClear = Enumerable.Range(0, 10)
-                 .Select(x => boardGameObjects[row][x])
-                 .ToArray();
-        foreach (GameObject GO in toClear)
-        {
-            Destroy(GO);
-        }
-
-        Enumerable.Range(0, 10).Select(x => boardGameObjects[row][x] = null);
-
-
-        //Translate down all children above cleared line
-        int[] rowsToMove = Enumerable.Range(row, 25 - row - 1)
-                 .ToArray();
-        foreach (int floatingRow in rowsToMove)
-        {
-            GameObject[] toMove = Enumerable.Range(0, 10)
-                     .Select(x => boardGameObjects[floatingRow][x])
-                     .ToArray();
-
-            foreach (GameObject GO in boardGameObjects[floatingRow])
-                if (GO != null)
-                    GO.transform.position += new Vector3(0, -0.4f, 0);
-        }
-
-        //Copy the rows above the cleared line in the jagged array down
-        Array.Copy(boardGameObjects[boardGameObjects, 10, boardGameObjects, 0, 10 * 24);
-        Array.Copy(new GameObject[10, 1], 0, boardGameObjects, 24 * 10, 10);
-        return;
-    }*/
 
     /*Get all x indexes that need to be scanned
      * then go down in y index and scan all x indexes
      */
+    /// <summary>
+    /// Input children that need to be scanned (those that are exposed on the bottom);
+    /// Go down 1 tile and check if any of the children overlap something
+    /// Return how many tiles the mino can move down without obstruction
+    /// </summary>
+    /// <param name="minoChildren"></param>
+    /// <returns></returns>
     public int distanceBelow(List<GameObject> minoChildren)
     {
         Dictionary<int, (GameObject, int)> xToScan = new();
 
-        //Make a dictionary of (X index, tuple(childGO, Y index)), and the highest row that must be checked
+        //Make a dictionary of (X index, tuple(childGO, Y index)) of all input children
         foreach (GameObject i in minoChildren)
         {
             (int, int) gridIndex = getGridIndex(i.transform.position);
             xToScan.Add(gridIndex.Item2, (i, gridIndex.Item1));
         }
 
-        //start scanning one y unit below each cube of the player mino if it is out of bounds or occupied, and return the distance to it in number of cubes
+        //start scanning one y unit below each cube of the player mino
+        //if it is out of bounds or occupied, and return the distance to it in number of cubes
         for (int j = 1; true; j++)
         {
             foreach (int x in xToScan.Keys)
@@ -249,6 +189,8 @@ public class BoardManagerJagged : MonoBehaviour
             }
         }
     }
+
+
 
     public (bool, (int, int)) checkRotation(List<GameObject> childrenGO, int rot, (int, int) rotMode)
     {
@@ -329,5 +271,20 @@ public class BoardManagerJagged : MonoBehaviour
         Quaternion rotation = Quaternion.AngleAxis(rot, Vector3.forward);
         return rotation * (GO.transform.position - GO.transform.parent.position) + GO.transform.parent.position;
         //return theoreticalRotation;
+    }
+
+    public bool CheckOverlap (List<GameObject> Children)
+    {
+        foreach (GameObject child in Children)
+        {
+            //Get indexes of the children
+            (int, int) index = getGridIndex(child.transform.position);
+            //If the index of the child is not null, gameover
+            if (BoardManagerJagged.Instance.boardGameObjects[index.Item1][index.Item2] != null)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

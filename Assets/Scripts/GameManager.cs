@@ -12,15 +12,15 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
 
     //RNG Generator
-    public string currentPiece;
+    private string currentPiece;
     List<string> Pieces = new() { "i", "o", "t", "l", "j", "s", "z" };
     List<string> RNGPieces = new();
     List<string> nextMinos = new();
-    public int pieceItr = 0;
+    private int pieceItr = 0;
 
     //Hold Logic
-    public string heldPiece = "";
-    public bool holdOK = true;
+    private string heldPiece = "";
+    private bool holdOK = true;
 
     //Bool to enable Soft Drop inbetween piece drops (used in playerMinoTransforms)
     public bool softDropOn = false;
@@ -35,23 +35,23 @@ public class GameManager : MonoBehaviour
     public KeyCode rotLeft;
 
     //Mino Prefab References
-    public GameObject IMino;
-    public GameObject OMino;
-    public GameObject SMino;
-    public GameObject ZMino;
-    public GameObject LMino;
-    public GameObject JMino;
-    public GameObject TMino;
+    [SerializeField] GameObject IMino;
+    [SerializeField] GameObject OMino;
+    [SerializeField] GameObject SMino;
+    [SerializeField] GameObject ZMino;
+    [SerializeField] GameObject LMino;
+    [SerializeField] GameObject JMino;
+    [SerializeField] GameObject TMino;
     public Dictionary<string, GameObject> minoPrefabDict = new();
 
     //References to visual GameObjects
     private GameObject playerMino;
     private GameObject holdMino;
-    private GameObject nextMino1;
-    private GameObject nextMino2;
-    private GameObject nextMino3;
-    private GameObject nextMino4;
-    private GameObject nextMino5;
+    private readonly GameObject nextMino1;
+    private readonly GameObject nextMino2;
+    private readonly GameObject nextMino3;
+    private readonly GameObject nextMino4;
+    private readonly GameObject nextMino5;
     List<GameObject> nextMinoList;
 
     //reference to the current player's script
@@ -88,7 +88,7 @@ public class GameManager : MonoBehaviour
     //Property for gameover
     private bool _gameover = false;
     //CAPTALIZE
-    public bool gameover
+    public bool Gameover
     {
         get => _gameover;
         set
@@ -126,10 +126,7 @@ public class GameManager : MonoBehaviour
         //use tempPrefabDictionary to instantiate minoPrefabDict
         //this needs to be done as I assign references to gameObjects
         foreach (KeyValuePair<string, GameObject> kvp in tempPrefabDict)
-        {
             minoPrefabDict.Add(kvp.Key, kvp.Value);
-            //Debug.LogFormat("{0} added", kvp.Key);
-        }
 
         //Instantiate list of next Mino GameObjects
         nextMinoList = new() { nextMino1, nextMino2, nextMino3, nextMino4, nextMino5 };

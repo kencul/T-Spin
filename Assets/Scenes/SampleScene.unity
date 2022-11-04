@@ -1854,10 +1854,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac959cc08ed9840e893b45ad2e93cab0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentPiece: 
-  pieceItr: 0
-  heldPiece: 
-  holdOK: 1
   softDropOn: 0
   HardDrop: 32
   SoftDrop: 115
