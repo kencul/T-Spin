@@ -11,9 +11,11 @@ public class initializeGame : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        //When start key is pressed, disable title text, run game set up, and destroy this script
         if (Input.GetKeyDown(start))
         {
             title.text = "";
+            title.enabled = false;
             GameManager.Instance.initGame();
             Destroy(this);
         }

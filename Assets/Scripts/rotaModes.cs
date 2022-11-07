@@ -5,6 +5,12 @@ using UnityEngine;
 
 public class rotaModes
 {
+    /* MinoR - all cubes exposed on the right
+     * MinoL - all cubes exposed on the left
+     * BottomChildren - all cubes exposed on the bottom
+     * LowestChild - the lowest cube*/
+
+
     //I Mino
     //
     //rotation Modes:
@@ -356,6 +362,7 @@ public class rotaModes
     };
 
 
+    //Public methods for other classes to be able to access the dictionaries based on mino type and rotation mode
     public static List<int> ReturnRightChildren (string s, int mode)
     {
         switch (s)
@@ -451,12 +458,4 @@ public class rotaModes
                 return 0;
         }
     }
-
-    //public void setIMinoLeftRightChild(Dictionary<> leftRightChild)
-    //{
-    //    leftRightChild.Add(0, (childrenGO[0], childrenGO[3]));
-    //    leftRightChild.Add(1, (childrenGO[0], childrenGO[0]));
-    //    leftRightChild.Add(2, (childrenGO[3], childrenGO[0]));
-    //    leftRightChild.Add(3, (childrenGO[0], childrenGO[0]));
-    //}
 }

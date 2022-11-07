@@ -52,6 +52,7 @@ public class playerMinoTransforms : MonoBehaviour
     Coroutine softDropCoroutine;
 
     //move right and left coroutine, and booleans to determine which key is pressed down, and which coroutine is running
+    //https://answers.unity.com/questions/300864/how-to-stop-a-co-routine-in-c-instantly.html
     Coroutine moveRightCoroutine;
     Coroutine moveLeftCoroutine;
     bool rightKeyDown;
@@ -115,6 +116,7 @@ public class playerMinoTransforms : MonoBehaviour
             ghostPieceChildren.Add(ghostPiece.transform.GetChild(i).gameObject);
         }
         //Set the spirte renderer of each child of the ghost piece to be 0.2 opacity
+        //https://forum.unity.com/threads/unity-4-3-how-to-change-the-opacity-of-a-2d-sprite.223146/
         foreach (GameObject child in ghostPieceChildren)
         {
             SpriteRenderer render = child.GetComponent<SpriteRenderer>();
@@ -127,7 +129,7 @@ public class playerMinoTransforms : MonoBehaviour
         updateDistanceUnder();
         //If softdrop was still on when last piece was placed, start this piece with softDrop on
         if (GameManager.Instance.softDropOn)
-            softDropCoroutine = StartCoroutine(softDrop());
+            softDropCoroutine = StartCoroutine(SoftDrop());
         //if not start with simple gravity
         else
             gravityCoroutine = StartCoroutine(Gravity());
@@ -142,13 +144,13 @@ public class playerMinoTransforms : MonoBehaviour
         //If right key is down already, start moving right
         else if (rightKeyDown)
         {
-            moveRightCoroutine = StartCoroutine(moveSide(1));
+            moveRightCoroutine = StartCoroutine(MoveSide(1));
             rightCoroutineOn = true;
         }
         //If left key "    "    "   ,   "       "   left
         else if (leftKeyDown)
         {
-            moveLeftCoroutine = StartCoroutine(moveSide(-1));
+            moveLeftCoroutine = StartCoroutine(MoveSide(-1));
             leftCoroutineOn = true;
         }
 
@@ -171,7 +173,7 @@ public class playerMinoTransforms : MonoBehaviour
                 StopCoroutine(moveRightCoroutine);
                 rightCoroutineOn = false;
             }
-            moveLeftCoroutine = StartCoroutine(moveSide(-1));
+            moveLeftCoroutine = StartCoroutine(MoveSide(-1));
             leftCoroutineOn = true;
         }
         //If left key is lifted, stop moveLeft Coroutine if running, and start moving right if rightKey is down and not moving right already
@@ -185,7 +187,7 @@ public class playerMinoTransforms : MonoBehaviour
             }
             if (rightKeyDown && !rightCoroutineOn)
             {
-                moveRightCoroutine = StartCoroutine(moveSide(1));
+                moveRightCoroutine = StartCoroutine(MoveSide(1));
                 rightCoroutineOn = true;
             }
         }
@@ -199,7 +201,7 @@ public class playerMinoTransforms : MonoBehaviour
                 StopCoroutine(moveLeftCoroutine);
                 leftCoroutineOn = false;
             }
-            moveRightCoroutine = StartCoroutine(moveSide(1));
+            moveRightCoroutine = StartCoroutine(MoveSide(1));
             rightCoroutineOn = true;
         }
         //If right key is lifted, stop moveRight Coroutine if running, and start moving left if leftKey is down and not moving left already
@@ -213,7 +215,7 @@ public class playerMinoTransforms : MonoBehaviour
             }
             if (leftKeyDown && !leftCoroutineOn)
             {
-                moveLeftCoroutine = StartCoroutine(moveSide(-1));
+                moveLeftCoroutine = StartCoroutine(MoveSide(-1));
                 leftCoroutineOn = true;
             }
         }
@@ -261,7 +263,7 @@ public class playerMinoTransforms : MonoBehaviour
             if (distanceUnder > 0)
             {
                 StopCoroutine(gravityCoroutine);
-                softDropCoroutine = StartCoroutine(softDrop());
+                softDropCoroutine = StartCoroutine(SoftDrop());
                 GameManager.Instance.softDropOn = true;
             }
             //If touching the ground, place the mino
@@ -325,17 +327,17 @@ public class playerMinoTransforms : MonoBehaviour
     /// Places mino after mino doesn't move for 20 attempts
     /// </summary>
     /// <returns></returns>
-    IEnumerator softDrop()
+    IEnumerator SoftDrop()
     {
         //instantly move mino down one tile
-        moveDown();
+        MoveDown();
         int failedMoves = 0;
         yield return new WaitForSeconds(0.25f);
         //Do this forever every 0.03 seconds
         while (true)
         {
             //Attempt to move down one tile, and set failedMoves to 0 if successful
-            if (moveDown())
+            if (MoveDown())
                 failedMoves = 0;
             //If failed, increment failedMoves counter, and place mino if it was the 21st failed attempt
             else
@@ -357,15 +359,15 @@ public class playerMinoTransforms : MonoBehaviour
     /// </summary>
     /// <param name="dir"></param>
     /// <returns></returns>
-    IEnumerator moveSide(int dir)
+    IEnumerator MoveSide(int dir)
     {
         switch (dir)
         {
             case 1:
-                moveToRight();
+                MoveToRight();
                 break;
             case -1:
-                moveToLeft();
+                MoveToLeft();
                 break;
         }
         yield return new WaitForSeconds(0.2f);
@@ -374,10 +376,10 @@ public class playerMinoTransforms : MonoBehaviour
             switch (dir)
             {
                 case 1:
-                    moveToRight();
+                    MoveToRight();
                     break;
                 case -1:
-                    moveToLeft();
+                    MoveToLeft();
                     break;
             }
             yield return new WaitForSeconds(0.05f);
@@ -388,7 +390,7 @@ public class playerMinoTransforms : MonoBehaviour
     /// Check if mino can move right;
     /// If ok, move mino, update distanceUnder and ghostPiece position
     /// </summary>
-    void moveToRight ()
+    void MoveToRight ()
     {
         if (BoardManagerJagged.Instance.checkSideMovement(1, rightChildren[RotaMode]))
         {
@@ -402,7 +404,7 @@ public class playerMinoTransforms : MonoBehaviour
     /// Check if mino can move left;
     /// If ok, move mino, update distanceUnder and ghostPiece position
     /// </summary>
-    void moveToLeft ()
+    void MoveToLeft ()
     {
         if (BoardManagerJagged.Instance.checkSideMovement(-1, leftChildren[RotaMode]))
         {
@@ -418,7 +420,7 @@ public class playerMinoTransforms : MonoBehaviour
     /// If mino can move down, moves the mino, updates distance under, and returns true
     /// </summary>
     /// <returns></returns>
-    bool moveDown()
+    bool MoveDown()
     {
         if (distanceUnder <= 0)
         {

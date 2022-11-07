@@ -132,7 +132,9 @@ public class GameManager : MonoBehaviour
         nextMinoList = new() { nextMino1, nextMino2, nextMino3, nextMino4, nextMino5 };
     }
 
-    //Method to call to start the game: run RNG, generate next pieces, and spawn minos\
+    /// <summary>
+    /// Calls to start the game: run RNG, generate next pieces, and spawn minos
+    /// </summary>
     public void initGame()
     {
         SevenBagPRG();
@@ -166,14 +168,18 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    //Method to end the game, shows text for gameover and destroys this script
+    /// <summary>
+    /// Ends the game, shows text for gameover and destroys this script
+    /// </summary>
     void gameoverProcess()
     {
         gameoverText.text = "GAMEOVER </indent> PRESS SPACE TO RESTART";
         Destroy(this);
     }
 
-    //Method to place a piece, gets the next mino and updates all minos on screen
+    /// <summary>
+    /// Places a piece, gets the next mino and updates all minos on screen
+    /// </summary>
     public void piecePlaced()
     {
         NextPiece();
@@ -181,7 +187,9 @@ public class GameManager : MonoBehaviour
         holdOK = true;
     }
 
-    //Delete Player Controlled mino (used for holding a mino)
+    /// <summary>
+    /// Delete Player Controlled mino (used for holding a mino)
+    /// </summary>
     public void deletePlayerMino()
     {
         if (playerMino != null)
@@ -191,7 +199,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    //Method to reload minos
+    /// <summary>
+    /// Reloads minos, spawning player mino, hold mino, next minos
+    /// </summary>
     public void updateMinos()
     {
         //Spawn Player Mino with script
@@ -221,8 +231,10 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    //Generate the 5 next pieces, based on 7-bag rng
-    //7-bag rng: ensures all 7 minos appear before a mino comes up again
+    /// <summary>
+    /// Generate the 5 next pieces, based on 7-bag rng
+    /// </summary>
+    // 7-bag rng: ensures all 7 minos appear before a mino comes up again
     public void NextPiece()
     {
         //Create queue of next 5 minos
@@ -252,7 +264,10 @@ public class GameManager : MonoBehaviour
 
     //Fisher-Yates Shuffle
     //https://en.wikipedia.org/wiki/Fisher–Yates_shuffle
-    //Takes the 7 minos, and randomizes the order with all permutations being equally probable
+    //https://gamedev.stackexchange.com/questions/178228/c-need-help-with-shuffling-a-list
+    /// <summary>
+    /// Takes the 7 minos, and randomizes the order with all permutations being equally probable
+    /// </summary>
     public void SevenBagPRG()
     {
         int n = 7;

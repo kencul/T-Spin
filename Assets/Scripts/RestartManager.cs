@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using UnityEngine;
 
@@ -26,9 +24,8 @@ public class RestartManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        //When gameovered, pressing space causes the scene to be reloaded, and restart the game from the title screen
         if (gameovered && Input.GetKeyDown(space))
-        {
             SceneManager.LoadScene("SampleScene");
-        }
     }
 }

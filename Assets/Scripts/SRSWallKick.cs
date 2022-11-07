@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class SRSWallKick
 {
+    //https://tetris.fandom.com/wiki/SRS
+
+
     //J, L, T, S, Z 
 
     static Dictionary<(int, int), List<(int, int)>> mainKickTable = new()
