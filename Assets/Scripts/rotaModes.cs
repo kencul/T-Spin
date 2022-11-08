@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class rotaModes
+public static class rotaModes
 {
     /* MinoR - all cubes exposed on the right
      * MinoL - all cubes exposed on the left
