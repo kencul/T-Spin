@@ -2283,7 +2283,7 @@ MonoBehaviour:
   Powerup: {fileID: 8300000, guid: 9e6b234499dfafe4a94df3e6755dec5c, type: 3}
   LoadStart: {fileID: 8300000, guid: 5789c13796f75964ab2b8d8165f74a84, type: 3}
   AudioSource: {fileID: 1938267512}
-  powerUpProbability: 1
+  powerUpProbability: 0.25
   minoParent: {fileID: 1025294566}
   fallRate: 2
   scoreText: {fileID: 11049923}

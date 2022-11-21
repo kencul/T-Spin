@@ -181,7 +181,6 @@ public class BoardManagerJagged : MonoBehaviour
             //NOT WORKING
                 if (parent.childCount == 1)
                     Destroy(parent.gameObject);
-                }
             }
         }
 
