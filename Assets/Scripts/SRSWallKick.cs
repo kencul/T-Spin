@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SRSWallKick
+public static class SRSWallKick
 {
     //https://tetris.fandom.com/wiki/SRS
 

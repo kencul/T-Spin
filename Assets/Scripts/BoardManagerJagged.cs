@@ -167,6 +167,7 @@ public class BoardManagerJagged : MonoBehaviour
                 Destroy(GO);
             }
 
+            Debug.Log(parents.Any());
             /********************************************************************************/
             foreach (Transform parent in parents)
             {
@@ -180,6 +181,7 @@ public class BoardManagerJagged : MonoBehaviour
             //NOT WORKING
                 if (parent.childCount == 1)
                     Destroy(parent.gameObject);
+                }
             }
         }
 
