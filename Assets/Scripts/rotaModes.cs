@@ -370,6 +370,7 @@ public class rotaModes
             case "i":
                 return IMinoR[mode];
             case "o":
+            case "power":
                 return OMinoR[mode];
             case "t":
                 return TMinoR[mode];
@@ -394,6 +395,7 @@ public class rotaModes
             case "i":
                 return IMinoL[mode];
             case "o":
+            case "power":
                 return OMinoL[mode];
             case "t":
                 return TMinoL[mode];
@@ -418,6 +420,7 @@ public class rotaModes
             case "i":
                 return IBottomChildren[mode];
             case "o":
+            case "power":
                 return OBottomChildren[mode];
             case "t":
                 return TBottomChildren[mode];
@@ -442,6 +445,7 @@ public class rotaModes
             case "i":
                 return ILowestChild[mode];
             case "o":
+            case "power":
                 return OLowestChild[mode];
             case "t":
                 return TLowestChild[mode];

@@ -82,7 +82,56 @@ public class BoardManagerJagged : MonoBehaviour
         //Delete GameObjects of completed lines
         //https://www.techiedelight.com/check-list-is-empty-csharp/
         if (filledLines.Any())
+        {
+            GameManager.Instance.PlayClip("LineClear");
             deleteLines(filledLines);
+        }
+        else
+            GameManager.Instance.PlayClip("Place");
+    }
+    
+    /// <summary>
+    /// T-Spin check overload
+    /// </summary>
+    /// <param name="minoChildren"></param>
+    /// <param name="T_Spin"></param>
+    public void placeInBoard(List<GameObject> minoChildren, bool T_Spin)
+    {
+        List<int> rowsChanged = new();
+        List<int> filledLines = new();
+
+        //Assign each cube to the mutidimensional array
+        foreach (GameObject i in minoChildren)
+        {
+            //Debug.Log(i.transform.position);
+            (int, int) gridIndex = getGridIndex(i.transform.position);
+            boardGameObjects[gridIndex.Item1][gridIndex.Item2] = i;
+
+            if (!rowsChanged.Contains(gridIndex.Item1))
+            {
+                rowsChanged.Add(gridIndex.Item1);
+            }
+        }
+
+        //Check if any of the modified rows are completed
+        foreach (int row in rowsChanged)
+        {
+            if (checkIfLineFilled(row))
+                filledLines.Add(row);
+        }
+
+        //Add number of rows cleared by T-Spin to score
+        GameManager.Instance.Score += filledLines.Count;
+
+        //Delete GameObjects of completed lines
+        //https://www.techiedelight.com/check-list-is-empty-csharp/
+        if (filledLines.Any())
+        {
+            GameManager.Instance.PlayClip("LineClear");
+            deleteLines(filledLines);
+        }
+        else
+            GameManager.Instance.PlayClip("Place");
     }
 
     /// <summary>
@@ -119,10 +168,17 @@ public class BoardManagerJagged : MonoBehaviour
             }
 
             /********************************************************************************/
-            //NOT WORKING
             foreach (Transform parent in parents)
             {
-                if (parent.childCount == 0)
+                //Check if it was the power up
+                if (parent.gameObject.CompareTag("power"))
+                {
+                    Debug.Log("POWERINGUP");
+                    GameManager.Instance.PlayClip("Powerup");
+                    GameManager.Instance.PoweredUp = true;
+                }
+            //NOT WORKING
+                if (parent.childCount == 1)
                     Destroy(parent.gameObject);
             }
         }
@@ -330,6 +386,72 @@ public class BoardManagerJagged : MonoBehaviour
             if (BoardManagerJagged.Instance.boardGameObjects[index.Item1][index.Item2] != null)
                 return true;
         }
+        return false;
+    }
+
+    public bool checkTSpin(GameObject centerChild)
+    {
+        List<(int, int)> skews = new()
+        {
+            (1, 1),
+            (1, -1),
+            (-1, 1),
+            (-1, -1)
+        };
+        List<(int, int)> indexesToCheck = new();
+        int invalidIndexes = 0;
+        (int, int) index = getGridIndex(centerChild.transform.position);
+
+        //Find all 4 indexes to check, abort early if 2 is invalid
+        foreach ((int, int) skew in skews)
+        {
+            //index to check is above floor
+            if ((index.Item1 + skew.Item1) >= 0 && (index.Item2 + skew.Item2) <= 25)
+            {
+                //index to check is within left and right borders
+                if ((index.Item2 + skew.Item2) >= 0 && (index.Item2 + skew.Item2) <= 9)
+                    indexesToCheck.Add((index.Item1 + skew.Item1, index.Item2 + skew.Item2));
+                else
+                {
+                    invalidIndexes++;
+                    if (invalidIndexes == 2)
+                    {
+                        Debug.Log("2 invalid indexes, t-spin failed!");
+                        return false;
+                    }
+                }
+            }
+            else
+            {
+                invalidIndexes++;
+                if (invalidIndexes == 2)
+                {
+                    Debug.Log("2 invalid indexes, t-spin failed!");
+                    return false;
+                }
+            }
+        }
+
+        //Debug.Log(indexesToCheck.Count);
+
+        //Check each index. If 3 of them are filled, return true
+        int indexesFilled = 0;
+        foreach ((int, int) tindex in indexesToCheck)
+        {
+            //Debug.LogFormat("({0}, {1})", tindex.Item1, tindex.Item2);
+            if (boardGameObjects[tindex.Item1][tindex.Item2] != null)
+            {
+                //Debug.Log("index filled");
+                indexesFilled++;
+                //Debug.Log(indexesFilled);
+                if(indexesFilled == 3)
+                {
+                    //Debug.Log("T-Spin Successful!");
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 }

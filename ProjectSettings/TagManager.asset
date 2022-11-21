@@ -12,6 +12,7 @@ TagManager:
   - l
   - s
   - z
+  - power
   layers:
   - Default
   - TransparentFX

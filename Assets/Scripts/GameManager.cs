@@ -33,6 +33,11 @@ public class GameManager : MonoBehaviour
     public KeyCode Right;
     public KeyCode rotRight;
     public KeyCode rotLeft;
+    public KeyCode esc;
+
+    //Pause Logic
+    public bool paused = false;
+    [SerializeField] TextMeshProUGUI text;
 
     //Mino Prefab References
     [SerializeField] GameObject IMino;
@@ -42,7 +47,45 @@ public class GameManager : MonoBehaviour
     [SerializeField] GameObject LMino;
     [SerializeField] GameObject JMino;
     [SerializeField] GameObject TMino;
+    [SerializeField] GameObject PowerUpMino;
     public Dictionary<string, GameObject> minoPrefabDict = new();
+
+    //Audio Files
+    [SerializeField] AudioClip CountDown;
+    [SerializeField] AudioClip GameOver;
+    [SerializeField] AudioClip GameStart;
+    [SerializeField] AudioClip LineClear;
+    [SerializeField] AudioClip Move;
+    [SerializeField] AudioClip Place;
+    [SerializeField] AudioClip Powerup;
+    [SerializeField] AudioClip LoadStart;
+    [SerializeField] AudioSource AudioSource;
+
+    //PowerUp Logic
+    public float powerUpProbability = 1.0f;
+    bool _poweredUp = false;
+    public bool PoweredUp
+    {
+        get => _poweredUp;
+        set
+        {
+            if (value)
+            {
+                //If powerup is gotten, restart if already in powerup, start normally if not
+                if (_poweredUp)
+                {
+                    StopCoroutine(powerUpTimer);
+                    powerUpTimer = StartCoroutine(PowerUpTime());
+                }
+                else
+                {
+                    powerUpTimer = StartCoroutine(PowerUpTime());
+                }
+                _poweredUp = true;
+            }
+        }
+    }
+    Coroutine powerUpTimer;
 
     //References to visual GameObjects
     private GameObject playerMino;
@@ -60,11 +103,31 @@ public class GameManager : MonoBehaviour
     //Empty GameObject to group minos
     public GameObject minoParent;
 
+    //Fall rate that scales off of score
+    public float fallRate = 2;
+
+    //Score Property
+    int _score = 0;
+    //update scoreboard and increase fallRate every 2 lines
+    public int Score
+    {
+        get => _score;
+        set
+        {
+            _score = value;
+            scoreText.text = "Score: " + _score;
+            fallRate = 2.0f/((_score / 2)+1);
+        }
+    }
+
+    [SerializeField] TextMeshProUGUI scoreText;
+
     //Dictionary to adjust the spawn location of each mino, as the center of the prefabs are different for each
     Dictionary<string, Vector3> spawnLocation = new()
     {
         { "i", new Vector3(0, 4.0f, 0) },
         { "o", new Vector3(0, 4.4f, 0) },
+        { "power", new Vector3(0, 4.4f, 0) },
         { "t", new Vector3(-0.2f, 4.2f, 0) },
         { "l", new Vector3(-0.2f, 4.2f, 0) },
         { "j", new Vector3(-0.2f, 4.2f, 0) },
@@ -77,6 +140,7 @@ public class GameManager : MonoBehaviour
     {
         { "i", new Vector3(0, -0.2f, 0) },
         { "o", new Vector3(0, 0, 0) },
+        { "power", new Vector3(0, 0, 0) },
         { "t", new Vector3(0, -0.2f, 0) },
         { "l", new Vector3(0, -0.2f, 0) },
         { "j", new Vector3(0, -0.2f, 0) },
@@ -108,6 +172,8 @@ public class GameManager : MonoBehaviour
             Destroy(this);
         else
             Instance = this;
+
+        PlayClip("GameStart");
     }
 
     void Start()
@@ -117,6 +183,7 @@ public class GameManager : MonoBehaviour
         {
             { "i", IMino },
             { "o", OMino },
+            { "power", PowerUpMino },
             { "t", TMino },
             { "l", LMino },
             { "j", JMino },
@@ -145,26 +212,44 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //Hold Piece logic
-        //If hold key pressed and hold available, hold the piece and disable holding for the turn
-        if (Input.GetKeyDown(Hold) && holdOK)
+        if (Input.GetKeyDown(GameManager.Instance.esc))
         {
-            //If there is a mino already held, swap the current and held piece and delete the player
-            if (heldPiece != "")
+            if (paused)
             {
-                (heldPiece, currentPiece) = (currentPiece, heldPiece);
-                deletePlayerMino();
+                Time.timeScale = 1.0f;
+                text.text = "";
+                paused = false;
             }
-            //If there is no piece held, assign the current piece as held, get the next mino and destroy the mino
             else
             {
-                heldPiece = currentPiece;
-                NextPiece();
-                deletePlayerMino();
+                Time.timeScale = 0.0f;
+                text.text = "PAUSED";
+                paused = true;
             }
-            //Reload minos and disable holding for this turn
-            updateMinos();
-            holdOK = false;
+        }
+        //Hold Piece logic
+        //If hold key pressed and hold available, hold the piece and disable holding for the turn
+        if (!paused)
+        {
+            if (Input.GetKeyDown(Hold) && holdOK)
+            {
+                //If there is a mino already held, swap the current and held piece and delete the player
+                if (heldPiece != "")
+                {
+                    (heldPiece, currentPiece) = (currentPiece, heldPiece);
+                    deletePlayerMino();
+                }
+                //If there is no piece held, assign the current piece as held, get the next mino and destroy the mino
+                else
+                {
+                    heldPiece = currentPiece;
+                    NextPiece();
+                    deletePlayerMino();
+                }
+                //Reload minos and disable holding for this turn
+                updateMinos();
+                holdOK = false;
+            }
         }
     }
 
@@ -257,9 +342,13 @@ public class GameManager : MonoBehaviour
                 nextMinos.Add(RNGPieces[0]);
             }
         }
+        //Roll chance to change o piece into power up
         currentPiece = nextMinos[0];
+        if (currentPiece == "o")
+        {
+            currentPiece = Random.Range(0f, 1f) < powerUpProbability ? "power" : "o";
+        }
         nextMinos.RemoveAt(0);
-
     }
 
     //Fisher-Yates Shuffle
@@ -280,5 +369,67 @@ public class GameManager : MonoBehaviour
             RNGPieces[k] = RNGPieces[n];
             RNGPieces[n] = val;
         }
+    }
+
+    /// <summary>
+    /// Stop gravity for 5 seconds and shows text for no gravity
+    /// </summary>
+    /// <returns></returns>
+    IEnumerator PowerUpTime()
+    {
+        fallRate = 5f;
+        for (int i = 5; i > 0; i--)
+        {
+            text.text = "NO GRAVITY";
+            yield return new WaitForSeconds(1.0f);
+        }
+        fallRate = 2.0f / ((_score / 2) + 1);
+        //Debug.Log(fallRate);
+        text.text = "";
+        yield break;
+    }
+
+    public void PlayClip(string name)
+    {
+        switch (name)
+        {
+            case "GameOver":
+                AudioSource.PlayOneShot(GameOver, 1f);
+                break;
+            case "GameStart":
+                AudioSource.PlayOneShot(GameStart, 1f);
+                break;
+            case "LineClear":
+                AudioSource.PlayOneShot(LineClear, 1f);
+                break;
+            case "Move":
+                AudioSource.PlayOneShot(Move, 1f);
+                break;
+            case "Place":
+                AudioSource.PlayOneShot(Place, 1f);
+                break;
+            case "Powerup":
+                AudioSource.PlayOneShot(Powerup, 0.5f);
+                break;
+            case "LoadStart":
+                AudioSource.PlayOneShot(LoadStart, 1f);
+                break;
+            case "CountDown":
+                AudioSource.PlayOneShot(CountDown, 1f);
+                break;
+            default:
+                Debug.Log("No AudioClip Found");
+                break;
+        }
+
+        /*CountDown;
+        [SerializeField] AudioClip GameOver;
+        [SerializeField] AudioClip GameStart;
+        [SerializeField] AudioClip LineClear;
+        [SerializeField] AudioClip Move;
+        [SerializeField] AudioClip Place;
+        [SerializeField] AudioClip Powerup;
+        [SerializeField] AudioClip LoadStart;
+        [SerializeField] AudioSource AudioSource*/
     }
 }

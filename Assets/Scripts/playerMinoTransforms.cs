@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class playerMinoTransforms : MonoBehaviour
 {
@@ -44,9 +45,9 @@ public class playerMinoTransforms : MonoBehaviour
     private int distanceUnder;
 
     //Gravity logic: int for gravity speed, and coroutine reference
-    [SerializeField] int fallRate = 2;
+    float fallRate = 2;
     Coroutine gravityCoroutine;
-    private WaitForSeconds delay;
+    //private WaitForSeconds delay;
 
     //Reference to coroutine for soft drop
     Coroutine softDropCoroutine;
@@ -60,11 +61,15 @@ public class playerMinoTransforms : MonoBehaviour
     bool rightCoroutineOn = false;
     bool leftCoroutineOn = false;
 
+    private bool lastMoveRotate = false;
+
     //Instantiate the list of references to the children of the player mino
     private void Awake()
     {
         for (int i = 0; i < transform.childCount; i++)
             childrenGO.Add(transform.GetChild(i).gameObject);
+
+        fallRate = GameManager.Instance.fallRate;
     }
 
     void Start()
@@ -115,7 +120,7 @@ public class playerMinoTransforms : MonoBehaviour
         {
             ghostPieceChildren.Add(ghostPiece.transform.GetChild(i).gameObject);
         }
-        //Set the spirte renderer of each child of the ghost piece to be 0.2 opacity
+        //Set the sprite renderer of each child of the ghost piece to be 0.2 opacity
         //https://forum.unity.com/threads/unity-4-3-how-to-change-the-opacity-of-a-2d-sprite.223146/
         foreach (GameObject child in ghostPieceChildren)
         {
@@ -124,7 +129,7 @@ public class playerMinoTransforms : MonoBehaviour
         }
         //Initialization of gravity or softDrop Coroutine
         //instantiate delay of fallRate
-        delay = new WaitForSeconds(fallRate);
+        //delay = new WaitForSeconds(fallRate);
         //Find the distance under player (req. for gravity and softDrop)
         updateDistanceUnder();
         //If softdrop was still on when last piece was placed, start this piece with softDrop on
@@ -164,134 +169,142 @@ public class playerMinoTransforms : MonoBehaviour
     /// </summary>
     void Update()
     {
-        //If left key is down, stop moveRight Coroutine if it is running, and start moveLeft Coroutine
-        if (Input.GetKeyDown(GameManager.Instance.Left))
+        //Don't allow controls if paused
+        if (!GameManager.Instance.paused)
         {
-            leftKeyDown = true;
-            if (moveRightCoroutine != null)
+            //If left key is down, stop moveRight Coroutine if it is running, and start moveLeft Coroutine
+            if (Input.GetKeyDown(GameManager.Instance.Left))
             {
-                StopCoroutine(moveRightCoroutine);
-                rightCoroutineOn = false;
-            }
-            moveLeftCoroutine = StartCoroutine(MoveSide(-1));
-            leftCoroutineOn = true;
-        }
-        //If left key is lifted, stop moveLeft Coroutine if running, and start moving right if rightKey is down and not moving right already
-        else if (Input.GetKeyUp(GameManager.Instance.Left))
-        {
-            leftKeyDown = false;
-            if(leftCoroutineOn)
-            {
-                StopCoroutine(moveLeftCoroutine);
-                leftCoroutineOn = false;
-            }
-            if (rightKeyDown && !rightCoroutineOn)
-            {
-                moveRightCoroutine = StartCoroutine(MoveSide(1));
-                rightCoroutineOn = true;
-            }
-        }
-
-        //If right key is down, stop moveleft Coroutine if its running, and start moveRight Coroutine
-        if (Input.GetKeyDown(GameManager.Instance.Right))
-        {
-            rightKeyDown = true;
-            if (moveLeftCoroutine != null)
-            {
-                StopCoroutine(moveLeftCoroutine);
-                leftCoroutineOn = false;
-            }
-            moveRightCoroutine = StartCoroutine(MoveSide(1));
-            rightCoroutineOn = true;
-        }
-        //If right key is lifted, stop moveRight Coroutine if running, and start moving left if leftKey is down and not moving left already
-        else if (Input.GetKeyUp(GameManager.Instance.Right))
-        {
-            rightKeyDown = false;
-            if (moveRightCoroutine != null)
-            {
-                StopCoroutine(moveRightCoroutine);
-                rightCoroutineOn = false;
-            }
-            if (leftKeyDown && !leftCoroutineOn)
-            {
+                leftKeyDown = true;
+                if (moveRightCoroutine != null)
+                {
+                    StopCoroutine(moveRightCoroutine);
+                    rightCoroutineOn = false;
+                }
                 moveLeftCoroutine = StartCoroutine(MoveSide(-1));
                 leftCoroutineOn = true;
             }
-        }
+            //If left key is lifted, stop moveLeft Coroutine if running, and start moving right if rightKey is down and not moving right already
+            else if (Input.GetKeyUp(GameManager.Instance.Left))
+            {
+                leftKeyDown = false;
+                if (leftCoroutineOn)
+                {
+                    StopCoroutine(moveLeftCoroutine);
+                    leftCoroutineOn = false;
+                }
+                if (rightKeyDown && !rightCoroutineOn)
+                {
+                    moveRightCoroutine = StartCoroutine(MoveSide(1));
+                    rightCoroutineOn = true;
+                }
+            }
 
-        //When rotate right key is pressed
-        if (Input.GetKeyDown(GameManager.Instance.rotRight))
-        {
-            //check if rotation is available, and where the piece should be translated after the rotaion based on SRS
-            (bool, (int, int)) result = BoardManagerJagged.Instance.checkRotation(childrenGO, -90, (RotaMode, rotaModeTunneling(RotaMode + 1)));
-            //if a rotation is available
-            if (result.Item1)
+            //If right key is down, stop moveleft Coroutine if its running, and start moveRight Coroutine
+            if (Input.GetKeyDown(GameManager.Instance.Right))
             {
-                //update rotaMode, rotate and translate player mino, update distance under
-                RotaMode += 1;
-                transform.rotation = Quaternion.Euler(0, 0, -90 * RotaMode);
-                transform.position += new Vector3(0.4f * result.Item2.Item1, 0.4f * result.Item2.Item2, 0);
+                rightKeyDown = true;
+                if (moveLeftCoroutine != null)
+                {
+                    StopCoroutine(moveLeftCoroutine);
+                    leftCoroutineOn = false;
+                }
+                moveRightCoroutine = StartCoroutine(MoveSide(1));
+                rightCoroutineOn = true;
+            }
+            //If right key is lifted, stop moveRight Coroutine if running, and start moving left if leftKey is down and not moving left already
+            else if (Input.GetKeyUp(GameManager.Instance.Right))
+            {
+                rightKeyDown = false;
+                if (moveRightCoroutine != null)
+                {
+                    StopCoroutine(moveRightCoroutine);
+                    rightCoroutineOn = false;
+                }
+                if (leftKeyDown && !leftCoroutineOn)
+                {
+                    moveLeftCoroutine = StartCoroutine(MoveSide(-1));
+                    leftCoroutineOn = true;
+                }
+            }
+
+            //When rotate right key is pressed
+            if (Input.GetKeyDown(GameManager.Instance.rotRight))
+            {
+                //check if rotation is available, and where the piece should be translated after the rotaion based on SRS
+                (bool, (int, int)) result = BoardManagerJagged.Instance.checkRotation(childrenGO, -90, (RotaMode, rotaModeTunneling(RotaMode + 1)));
+                //if a rotation is available
+                if (result.Item1)
+                {
+                    //update rotaMode, rotate and translate player mino, update distance under
+                    RotaMode += 1;
+                    transform.rotation = Quaternion.Euler(0, 0, -90 * RotaMode);
+                    transform.position += new Vector3(0.4f * result.Item2.Item1, 0.4f * result.Item2.Item2, 0);
+                    lastMoveRotate = true;
+                    updateDistanceUnder();
+                    //restart the softDrop if rotated, which restarts the timer for auto placing
+                    if (!GameManager.Instance.softDropOn)
+                        restartCoroutine();
+                    //match the rotation and position of the ghost piece
+                    updateGhostPiece();
+                }
+            }
+            //Same logic as above, for opposite rotation
+            else if (Input.GetKeyDown(GameManager.Instance.rotLeft))
+            {
+                (bool, (int, int)) result = BoardManagerJagged.Instance.checkRotation(childrenGO, 90, (RotaMode, rotaModeTunneling(RotaMode - 1)));
+                if (result.Item1)
+                {
+                    RotaMode -= 1;
+                    transform.rotation = Quaternion.Euler(0, 0, -90 * RotaMode);
+                    transform.position += new Vector3(0.4f * result.Item2.Item1, 0.4f * result.Item2.Item2, 0);
+                    lastMoveRotate = true;
+                    updateDistanceUnder();
+                    if (!GameManager.Instance.softDropOn)
+                        restartCoroutine();
+                    updateGhostPiece();
+                }
+            }
+
+            //If softDrop/Down key is pressed
+            if (Input.GetKeyDown(GameManager.Instance.SoftDrop))
+            {
+                //If not touching the ground, stop gravity and start softDrop Coroutine, and set global softDrop to true
+                if (distanceUnder > 0)
+                {
+                    StopCoroutine(gravityCoroutine);
+                    softDropCoroutine = StartCoroutine(SoftDrop());
+                    GameManager.Instance.softDropOn = true;
+                }
+                //If touching the ground, place the mino
+                else
+                {
+                    placeMino();
+                }
+            }
+            //If softDrop/Down key is lifted
+            else if (Input.GetKeyUp(GameManager.Instance.SoftDrop))
+            {
+                //If softDropCoroutine is running, stop the softDrop Coroutine if running, and start gravity
+                if (softDropCoroutine != null)
+                {
+                    StopCoroutine(softDropCoroutine);
+                    gravityCoroutine = StartCoroutine(Gravity());
+                }
+                //Set global softDrop to false
+                GameManager.Instance.softDropOn = false; ;
+            }
+
+            //If hardDrop key is pressed, update distanceUnder, move playerMino to the ground according to distanceUnder, and place the mino
+            if (Input.GetKeyDown(GameManager.Instance.HardDrop))
+            {
                 updateDistanceUnder();
-                //restart the softDrop if rotated, which restarts the timer for auto placing
-                if(!GameManager.Instance.softDropOn)
-                    restartCoroutine();
-                //match the rotation and position of the ghost piece
-                updateGhostPiece();
-            }
-        }
-        //Same logic as above, for opposite rotation
-        else if (Input.GetKeyDown(GameManager.Instance.rotLeft))
-        {
-            (bool, (int,int)) result = BoardManagerJagged.Instance.checkRotation(childrenGO, 90, (RotaMode, rotaModeTunneling(RotaMode - 1)));
-            if (result.Item1)
-            {
-                RotaMode -= 1;
-                transform.rotation = Quaternion.Euler(0, 0, -90 * RotaMode);
-                transform.position += new Vector3(0.4f * result.Item2.Item1, 0.4f * result.Item2.Item2, 0);
-                updateDistanceUnder();
-                if (!GameManager.Instance.softDropOn)
-                    restartCoroutine();
-                updateGhostPiece();
-            }
-        }
-        
-        //If softDrop/Down key is pressed
-        if(Input.GetKeyDown(GameManager.Instance.SoftDrop))
-        {
-            //If not touching the ground, stop gravity and start softDrop Coroutine, and set global softDrop to true
-            if (distanceUnder > 0)
-            {
-                StopCoroutine(gravityCoroutine);
-                softDropCoroutine = StartCoroutine(SoftDrop());
-                GameManager.Instance.softDropOn = true;
-            }
-            //If touching the ground, place the mino
-            else
-            {
+                transform.position += new Vector3(0, distanceUnder * -0.4f, 0);
                 placeMino();
             }
         }
-        //If softDrop/Down key is lifted
-        else if (Input.GetKeyUp(GameManager.Instance.SoftDrop))
-        {
-            //If softDropCoroutine is running, stop the softDrop Coroutine if running, and start gravity
-            if (softDropCoroutine != null)
-            {
-                StopCoroutine(softDropCoroutine);
-                gravityCoroutine = StartCoroutine(Gravity());
-            }
-            //Set global softDrop to false
-            GameManager.Instance.softDropOn = false; ;
-        }
 
-        //If hardDrop key is pressed, update distanceUnder, move playerMino to the ground according to distanceUnder, and place the mino
-        if (Input.GetKeyDown(GameManager.Instance.HardDrop))
-        {
-            updateDistanceUnder();
-            transform.position += new Vector3(0, distanceUnder * -0.4f, 0);
-            placeMino();
-        }
+        
     }
     /// <summary>
     /// Stop gravityCoroutine and start it again
@@ -309,13 +322,17 @@ public class playerMinoTransforms : MonoBehaviour
     /// <returns></returns>
     IEnumerator Gravity()
     {
-        yield return delay;
+        fallRate = GameManager.Instance.fallRate;
+        yield return new WaitForSeconds (fallRate);
         //Move mino down one block as long as there is space under mino
         while (distanceUnder > 0)
         {
             transform.position += new Vector3(0, -0.4f, 0);
+            Debug.Log("Fell Block");
+            lastMoveRotate = false;
             distanceUnder--;
-            yield return delay;
+            fallRate = GameManager.Instance.fallRate;
+            yield return new WaitForSeconds (fallRate);
         }
         placeMino();
         yield break;
@@ -395,6 +412,7 @@ public class playerMinoTransforms : MonoBehaviour
         if (BoardManagerJagged.Instance.checkSideMovement(1, rightChildren[RotaMode]))
         {
             transform.position += new Vector3(0.4f, 0, 0);
+            lastMoveRotate = false;
             updateDistanceUnder();
             updateGhostPiece();
         }
@@ -409,6 +427,7 @@ public class playerMinoTransforms : MonoBehaviour
         if (BoardManagerJagged.Instance.checkSideMovement(-1, leftChildren[RotaMode]))
         {
             transform.position += new Vector3(-0.4f, 0, 0);
+            lastMoveRotate = false;
             updateDistanceUnder();
             updateGhostPiece();
         }
@@ -429,6 +448,7 @@ public class playerMinoTransforms : MonoBehaviour
         else
         {
             transform.position += new Vector3(0, -0.4f, 0);
+            lastMoveRotate = false;
             distanceUnder--;
             return true;
         }
@@ -457,8 +477,19 @@ public class playerMinoTransforms : MonoBehaviour
     /// </summary>
     void placeMino()
     {
-        GameManager.Instance.piecePlaced();
-        BoardManagerJagged.Instance.placeInBoard(childrenGO);
+        //If mino is a T, the last move was a rotate, check if it is a valid T-Spin
+        if (CompareTag("t") && lastMoveRotate && BoardManagerJagged.Instance.checkTSpin(transform.GetChild(1).gameObject))
+        {
+            GameManager.Instance.piecePlaced();
+            //Overload that adds number of lines cleared to the score
+            Debug.Log("calling tspin overload");
+            BoardManagerJagged.Instance.placeInBoard(childrenGO, true);
+        }
+        else
+        {
+            GameManager.Instance.piecePlaced();
+            BoardManagerJagged.Instance.placeInBoard(childrenGO);
+        }
         endScript();
     }
 
